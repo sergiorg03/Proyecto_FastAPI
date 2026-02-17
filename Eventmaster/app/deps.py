@@ -1,6 +1,6 @@
 # Archivo para dependencias
 
-from app.database import SessionLocal
+from .database import SessionLocal
 
 # Dependencia de la BD
 def get_db():
