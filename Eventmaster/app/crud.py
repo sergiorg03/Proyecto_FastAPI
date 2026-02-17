@@ -36,6 +36,9 @@ def actualizar_recinto(db: Session, id: int, datos):
     if not recinto_db:
         raise HTTPException(404, "Recinto no encontrado")
 
+    if datos.capacidad < 0:
+        raise HTTPException(400, "La capacidad no puede ser negativa")
+
     # Cambiamos los datos
     recinto_db.ciudad = datos.ciudad
     recinto_db.nombre = datos.nombre
@@ -52,6 +55,13 @@ def eliminar_recinto(db: Session, id: int):
     if not recinto_db:
         raise HTTPException(404, "Recinto no encontrado")
 
+    # Eliminamos los eventos asociados a dicho recinto
+    eventos = db.query(models.Evento).filter(models.Evento.recinto_id == id).all()
+    for evento in eventos:
+        db.delete(evento)
+    db.commit()
+
+    # Eliminamos el recinto
     db.delete(recinto_db)
     db.commit()
     return recinto_db
@@ -61,6 +71,12 @@ def eliminar_recinto(db: Session, id: int):
 '''
 
 def crear_evento(db: Session, evento):
+    
+    # Comprobamos que el id del recinto exista
+    recinto = db.query(models.Recinto).get(evento.recinto_id)
+    if not recinto:
+        raise HTTPException(404, "Recinto no existente")
+
     if evento.precio < 0:
         raise HTTPException(400, "El precio no puede ser negativo")
 
@@ -92,6 +108,11 @@ def comprar_tickets(db: Session, evento_id: int, cantidad: int):
     # Comprobamos que el evento exista
     if not evento:
         raise HTTPException(404, "Evento no encontrado")
+
+    # comprobamos que el id del recinto exista
+    recinto = db.query(models.Recinto).get(evento.recinto_id)
+    if not recinto:
+        raise HTTPException(404, "Recinto no existente")
 
     # Comprobamos que haya aforo suficiente
     if evento.tickets_vendidos + cantidad > evento.recinto.capacidad:
